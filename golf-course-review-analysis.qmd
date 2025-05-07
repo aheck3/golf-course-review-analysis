@@ -1,0 +1,555 @@
+---
+title: "Exploring Consumer Tastes and Preferences in Indianapolis Golf Courses through Sentiment-Based Review Analysis"
+author: "Alex S. Heck"
+format:
+  html:
+    toc: true
+    toc-location: left
+    self-contained: true
+jupyter: python3
+---
+
+
+## Introduction
+
+I first picked up a golf club at the young age of 5, and since then I have been hooked. Golf is a game that has always held a dear place in my heart, and I remain grateful for the lessons that the sport has taught me. 
+
+Growing up on the Southside of Indianapolis, I've had the opportunity to play at a variety of golf courses in the area. Certain courses have stood out to me more than others in terms of course condition, course design, and course difficulty. 
+
+My motivation for this analysis was to dive deeper into the Indianapolis golf scene. With hundreds of golf courses in Indianapolis and the surrounding area, there is certainly no shortage of golf to be played. 
+
+I am interested in uncovering what golfers truly care about when it comes to the courses that they play: 
+What factors influence the rating that a golfer assigns to a course? 
+What do golfers value in a golf course?
+What enhances the experience, and what detracts from the experience?
+
+I feel that this analysis could have some solid use cases. If a course is able to understand where golfers derive value, then they can focus on those areas to improve the overall experience for the golfer. This could lead to increased revenue, and a more enjoyable experience for customers.
+
+## Data Source
+
+GolfPass is a website and direct affiliate of Golf Channel and NBC Sports. The GolfPass website is available for anyone to use, however they also offer subscription plans which unlock additional content. When a user purchases a subscription, the user gains access to additional features such as video instruction, discounted tee-time offers, Golf Channel exclusive content, full access to the GolfPass mobile app, and rewards programs / points that can be redeemed for discounts. 
+
+There are several pages that live within the GolfPass website: "Play", "Learn", "Watch", "Travel", and "Daily Tips." The "Travel" page is quite unique as it allows people to explore various geographic regions and learn information about specific courses in these regions. There are over 38,000 unique golf courses across 200+ countries that are reflected within GolfPass. The "Travel" page allows users to explore courses, and read other users' experiences. The ratings for each course are broken up into two parts: star ratings and accompanying review comments. 
+
+For this analysis, I have decided to focus on the review comments that users have left regarding golf courses in the Indianapolis region. The goal for this is to gain insights into players' experiences and perceptions of these courses, and to understand the sentiment behind the comments. I hope to uncover what golfers truly care about, and what they value most in a golf course.
+
+
+
+
+## Indianapolis Courses & URL IDs
+
+The first step in this analysis was to collect the data. I used the BeautifulSoup library in Python to scrape the data from the GolfPass website. After a bit of digging, I learned that the "comments" (reviews) I was interested in using for this analysis lived within hyperlinks for each golf course. Each of these links contained a unique identifier. By scraping all of these unique identifiers, I can then loop through a constant URL, replacing the unique identifier with the IDs for the respective courses.
+
+I started by scraping each course that was available in Indianapolis, as well as the accompanying identifier that will allow me to access the specific URL that contains the comments for the respective courses. 
+
+I have stored these results in a dataframe titled golfcourses_df with the columns: Course_Name and Unique_Identifier. I will use this dataframe, and specifically the Unique_Identifier column to loop through various URLs to collect the comments that are available for each course. 
+
+```{python}
+#| warning: false
+import pandas as pd
+import numpy as np
+from bs4 import BeautifulSoup 
+import requests
+import re
+
+base_url = "https://www.golfpass.com/"
+top_courses = 'https://www.golfpass.com/travel-advisor/destinations/57-indianapolis-in/'
+top_courses_req = requests.get(top_courses)
+top_courses_soup = BeautifulSoup(top_courses_req.text, 'html.parser')
+
+links_class = top_courses_soup.select('a.Link')
+
+golfcourses = []
+
+for link in links_class:
+    href = link.get('href')
+    if '/courses/' in href:
+        find = re.search(r'/courses/([^/]+)/', href)
+        if find:
+            uniqueID = find.group(1)
+        else:
+            continue
+        course_complete_name = link.get_text().strip()
+        if not course_complete_name or "Write Review" in course_complete_name:
+            continue
+        golfcourses.append({'course_name': course_complete_name, 'unique_identifier': uniqueID})
+
+golfcourses_df = pd.DataFrame(golfcourses)
+
+golfcourses_df = golfcourses_df[['course_name', 'unique_identifier']].drop_duplicates().reset_index(drop=True)
+
+golfcourses_df.head()
+
+```
+
+In the below code, I am simply outputting my dataframe to a csv file and storing it locally. This will allow me to access the data at a later time without having to re-run the above code.
+
+```{python}
+#| warning: false
+golfcourses_df.to_csv('golfcourseslistIndianapolis.csv', index=False)
+
+golfcourses_df = pd.read_csv('golfcourseslistIndianapolis.csv')
+
+```
+
+
+
+
+
+
+
+## Collection of Course Comments
+
+In the below code chunk, I am using the unique identifiers that I collected in the previous step to loop through the URLs that contain the review comments for each course. I am storing the comments in a list of dictionaries, and then converting that list into a dataframe. 
+I have commented this chunk of code since it takes a very long time to run ~ around 55 minutes to fully complete.
+
+Additionally, in the course_comments_url, I am looping through 15 pages of review comments.
+
+** It should be noted that some courses contained 30+ pages of reviews. I wanted to focus on comments that were recent (looking back 5-6 years max). 
+
+```{python}
+#| warning: false
+'''
+course_reviews_list = []
+
+for uniqid, course in golfcourses_df.iterrows():
+    course_name = course['course_name']
+    course_id = course['unique_identifier']
+
+    for number in range (1, 16, 1):
+        course_comments_url = f"https://www.golfpass.com/travel-advisor/courses/{course_id}?page={number}"
+        course_comments_req = requests.get(course_comments_url)
+        course_comments_soup = BeautifulSoup(course_comments_req.text, 'html.parser')
+
+        comment_text = course_comments_soup.select('.ReviewItem-description p')
+
+        for comment in comment_text:
+            try:
+                review_text = comment.get_text().strip()
+                if review_text:
+                    course_reviews_list.append({
+                        'course_name': course_name,
+                        'unique_identifier': course_id,
+                        'comment': review_text
+                    })
+            except IndexError:
+                continue
+
+course_reviews_df = pd.DataFrame(course_reviews_list)
+'''
+```
+
+Since the code chunk above takes a while to run, I have decided to export it as a csv file and store it locally. This will allow me to access the data at a later time without having to re-run the scraping code.
+
+```{python}
+#| warning: false
+# course_reviews_df.to_csv('course_reviews_Indianapolis.csv', index=False)
+
+```
+
+When I want to access the data that has been scraped and stored, I simply read in the csv file. 
+
+```{python}
+#| warning: false
+course_reviews_df = pd.read_csv('course_reviews_Indianapolis.csv')
+
+course_reviews_df = course_reviews_df.drop_duplicates(subset = ['comment']).reset_index(drop=True)
+
+course_reviews_df
+
+```
+
+An issue that I noticed after examining my course_reviews_df was that some comments were being displayed more than once. Some courses that had more than 18 holes, i.e. Eagle Creek Golf Club which had a Pines Course and a Sycamore Course, often duplicated comments. Dropping these ensured that a user's unique response was only counted once.
+
+
+## Filtering for Adequate Data
+For analysis to run smoothly, there must be adequate data present. 
+I knew that it was crucial to have a large enough sample from each course. I decided to filter out courses that have less than 20 reviews and focus on the courses that had greater than 20 reviews. This criteria can be adjusted based on the analysis. 
+This would ensure that I was getting a large enough range of responses.
+
+```{python}
+#| warning: false
+course_reviews_df['count'] = course_reviews_df.groupby('course_name')['comment'].transform('count')
+
+course_reviews_df = course_reviews_df[course_reviews_df['count'] > 20]
+
+```
+
+After filtering, I still had 6300+ rows of golf course review comment data to work with. 
+
+
+
+
+
+
+## Sentiment Analysis
+
+Prior to running a sentiment analysis, I needed to convert the comments to strings. This will ensure that the sentiment analysis will run smoothly.
+
+```{python}
+#| warning: false
+course_reviews_df['comment'] = course_reviews_df['comment'].astype(str)
+
+```
+
+
+I used Vader to perform the sentiment analysis. Vader is quite straightforward to use, and it provides a compound score that ranges from -1 to +1. 
+A score of -1 indicates negative feelings/attitudes whereas a score of +1 indicates positive feelings/attitudes.
+A score that falls somewhere in the middle, around 0, can be interpreted as a neutral sentiment.
+
+
+```{python}
+#| warning: false
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+vader = SentimentIntensityAnalyzer()
+
+sentiment_scores = []
+
+for comment in course_reviews_df['comment']:
+    sentiment = vader.polarity_scores(comment)['compound']
+    sentiment_scores.append(sentiment)
+
+```
+
+Here I am appending the sentiment scores to the course_reviews_df dataframe.
+
+```{python}
+#| warning: false
+course_reviews_df['sentiment_score'] = sentiment_scores
+
+```
+
+
+Now that I have sentiment scores for each comment pertaining to the various courses, I can break it down course by course. I will group by course and then I will calculate the average sentiment score for each course.
+Finally I will sort the courses by the average score in descending order so as to display the courses with the highest average sentiment score first.
+
+```{python}
+#| warning: false
+average_course_review_df = average_sentiment = course_reviews_df.groupby('course_name')['sentiment_score'].mean().reset_index()
+average_course_review_df = average_course_review_df.rename(columns={'sentiment_score': 'average_sentiment_score'})
+average_course_review_df = average_course_review_df.sort_values(by='average_sentiment_score', ascending=False)
+average_course_review_df = average_course_review_df.reset_index(drop=True)
+
+average_course_review_df
+
+```
+
+
+I will also calculate the median sentiment score for each course, and sort the courses by the median score in descending order.
+I recall that median is a better measure of central tendency when there are outliers present in the data.
+It's unlikely we will have outliers in compound score since the range is -1 to +1, however I will calculate the median just to be sure.
+Looking at both dataframes, I can see that the average and median sentiment scores are quite similar.
+
+```{python}
+#| warning: false
+median_course_review_df = median_sentiment = course_reviews_df.groupby('course_name')['sentiment_score'].median().reset_index()
+median_course_review_df = median_course_review_df.rename(columns={'sentiment_score': 'median_sentiment_score'})
+median_course_review_df = median_course_review_df.sort_values(by='median_sentiment_score', ascending=False)
+median_course_review_df = median_course_review_df.reset_index(drop=True)
+
+median_course_review_df.head()
+
+```
+
+Since the median and the average sentiment scores are quite similar, I will only show the first few rows of the median_course_reviews_df. I will use the average sentiment score for the remainder of the analysis. 
+
+Specifically looking at my average (mean) calculation for the sentiment scores, I can see that the top 5 courses according to overall sentiment are: 
+1 Buffer Park Golf Course
+2 Deer Creek Golf Club	
+3 Bear Slide Golf Club	
+4 Arrowhead Golf Course	
+5 Eagle Pines Golf Club	
+
+On the other hand, the bottom 5 courses according to overall sentiment are:
+Prestwick Country Club, Morningstar Golf Club, Oaktree Golf Course, Winding Ridge Golf Club, and Gray Eagle Golf Club
+
+My home golf course, The Legends Golf Club is ranked 12th overall, not too bad but would like to see it higher on this list. I will explore this further as I continue the analysis.
+
+
+
+
+
+
+
+## Topic Modeling
+
+My goal with topic modeling is to uncover what people are saying when they leave a comment review for a golf course. I look to understand what topics are being discussed, and the frequency with which these topics come up.
+
+My hope is that uncovering these topics will provide some insight into what golfers truly care about and derive value from when it comes to the courses that they play.
+
+I will first run the topic model over all 45 of the Indianapolis courses that I have gathered data for. This will give me more of a macro view as to what people are discussing about the courses in the Indianapolis area.
+
+For topic modeling, I will use BERTopic and class Tfidf transformer. 
+I will first look at the entire dataset of Indianapolis course reviews. 
+
+```{python}
+#| warning: false
+from bertopic import BERTopic
+from bertopic.vectorizers import ClassTfidfTransformer
+from joblib import load, dump
+
+```
+
+
+```{python}
+#| warning: false
+ctfidf_model = ClassTfidfTransformer(
+  reduce_frequent_words=True
+)
+
+```
+
+
+Topic models require that our data be in the format of a list. In this line of code, I am converting my course_reviews_df which is a Pandas Dataframe into a list.
+
+I have also specified the location where I would like to save and output my topic model, topics, and probabilities. I will store it locally on my desktop.
+
+```{python}
+#| warning: false
+topic_model = BERTopic(ctfidf_model=ctfidf_model)
+
+topics, probs = topic_model.fit_transform(course_reviews_df['comment'].to_list())
+
+dump(
+  [topic_model, topics, probs], 
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_golf.joblib'
+)
+
+
+```
+
+
+In this next chunk of code, I am loading in the topic model, topics, and probabilities from the respective location that I saved them to. 
+I am specifically looking at the topic_info. 
+
+```{python}
+#| warning: false
+topic_model, topics, probs = load(
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_golf.joblib'
+)
+topic_info = topic_model.get_topic_info()
+
+additional_topic_info = topic_model.get_topic(0)
+
+topic_model.get_document_info(course_reviews_df['comment'])
+
+topic_model.get_representative_docs(0)
+
+topic_model.generate_topic_labels()
+
+topic_model.reduce_topics(course_reviews_df['comment'].to_list(), nr_topics=10)
+
+topic_info.head(10)
+
+
+```
+
+This output displays the top occurring topics/themes that were present. Additionally looking at the 'count', I can see how many comments were associated with each topic.
+I am confident that this gives me good insight into what people care about when it comes to the courses that they play.
+
+
+## Topic Modeling My Home Course
+
+In the following lines, I will replicate what I just did for my previous model that looked at all of the Indianapolis courses, but this time I will focus on my home course, The Legends Golf Club.
+
+I am filtering out the course_reviews_df to include only comments that correspond to The Legends.
+I am then ensuring that these comments are in string format.
+
+```{python}
+#| warning: false
+the_legends_df = course_reviews_df[course_reviews_df['course_name'].str.contains('The Legends Golf Club', na=False)]
+
+the_legends_df['comment'] = the_legends_df['comment'].astype(str)
+
+the_legends_df.head(10)
+
+```
+
+This dataframe contains 163 rows of comment reviews that pertain to The Legends Golf Club.
+
+
+
+```{python}
+#| warning: false
+topic_model = BERTopic(ctfidf_model=ctfidf_model)
+
+topics, probs = topic_model.fit_transform(the_legends_df['comment'].to_list())
+
+dump(
+  [topic_model, topics, probs], 
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_thelegends.joblib'
+)
+
+
+```
+
+
+
+```{python}
+#| warning: false
+topic_model, topics, probs = load(
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_thelegends.joblib'
+)
+topic_info = topic_model.get_topic_info()
+
+additional_topic_info = topic_model.get_topic(0)
+
+topic_model.get_document_info(the_legends_df['comment'])
+
+topic_model.get_representative_docs(0)
+
+topic_model.generate_topic_labels()
+
+topic_model.reduce_topics(the_legends_df['comment'].to_list(), nr_topics=7)
+
+topic_info
+
+
+```
+
+Again I am able to see the most frequently occurring topics, and the number of comments that were associated with each topic. It should be noted that with a smaller aggregate of comments, I was not able to uncover as many useful topics. 
+
+
+
+## Topic Modeling Negative Sentiment Scores 
+
+In the code chunks that follow, I am simply replicating what I have done previously, but this time I am back looking at all of the Indianapolis golf courses and focusing on the review comments that had a low to negative sentiment score. I hope to uncover some interesting topics that are being discussed by golfers who had a negative experience at the course.
+
+I have created a new dataframe titled negative_df that contains only comments that received a sentiment of less than or equal to 0.10. I consider 0.10 to be a neutral/negative score implying that the consumer had a less than stellar experience at the course.
+
+```{python}
+#| warning: false
+negative_df = course_reviews_df[course_reviews_df['sentiment_score'] <= 0.10]
+
+negative_df['comment'] = course_reviews_df['comment'].astype(str)
+
+```
+
+
+```{python}
+#| warning: false
+topic_model3 = BERTopic(ctfidf_model=ctfidf_model, min_topic_size=4)
+
+topics3, probs3 = topic_model3.fit_transform(negative_df['comment'].to_list())
+
+dump(
+  [topic_model3, topics3, probs3], 
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_negative.joblib'
+)
+
+```
+
+
+```{python}
+#| warning: false
+topic_model3, topics3, probs3 = load(
+  '/Users/golfe/OneDrive/Desktop/Unstructured Data/UDA_Final_Project/topic_model_negative.joblib'
+)
+topic_info3 = topic_model3.get_topic_info()
+
+additional_topic_info3 = topic_model.get_topic(0)
+
+topic_model3.get_document_info(negative_df['comment'])
+
+topic_model3.get_representative_docs(0)
+
+topic_model3.generate_topic_labels()
+
+topic_model3.reduce_topics(negative_df['comment'].to_list(), nr_topics=2)
+
+topic_info3.head(10)
+
+
+```
+
+Interesting to again see what the top themes are that are being discussed.
+I am noticing some similarities across the three topic models, and look forward to discussing this further in the findings section.
+
+
+## Findings
+
+*please note that for each of the three topic models, each time the code runs there is some variability in the topics that are generated. A unique seed could be set, however this would also have to be chosen and would be random. My findings and conclusion are based primarily on the topics that are occurring most, and based on the date of this analysis. (2/22/2025)
+
+Recall that my primary goal with this research was to uncover where golfers derive value, and what they care about most when it comes to the courses that they play. Looking at my three topic models, each of them varied, however there were some common themes that came up. 
+
+Starting with the entirety of the Indianapolis courses (all 45 that I had the pleasure of analyzing) 
+I found some interesting topics being discussed: 
+-The bunkers, and the sand being unplayable
+-The staff, and employees being friendly and helpful
+-The course conditions, specifically regarding moisture and rain
+-The pace of play, and slow groups/foursomes
+
+It makes sense that people would be discussing these topics. Bunkers are very tough for courses to maintain. From my experience, the best bunkers that contain nice, fluffy sand are only found at upscale public courses and elite private country clubs. The staff is also crucial to the overall experience. When checking in and paying for your round of golf, you must interact with a staff member. A friendly staff member who is kind and helpful can certainly enhance the experience. The pace of play is a recurring topic that comes up in golf. Particularly during times of high demand such as weekends and holidays, courses are often very crowded. This can lead to slow play, and a round of golf that takes 5+ hours. This can be very frustrating for golfers, and can detract from the overall experience.
+I find it funny and kind of ironic that people mention rain, moisture, and course conditions. I would not have thought that mother nature would be a driving force in a course review/comment. However, it is a known fact that certain courses drain better than others. 
+
+
+
+Moving on to the topic model for The Legends Golf Club, which is my home course. I was excited to explore the topics surrounding The Legends as it is a course that I have grown up on, and even worked at. 
+Since this was a substantially smaller dataset, I was not able to uncover as many topics. However, I did find some interesting topics being discussed:
+-The course was very great
+-The greens were fast
+-Bunkers
+-Rain/Wet course conditions
+
+First off, I was pleased to see that people seemed to be enjoying the course and making comments that it was "great".
+I was a bit surprised to see people commenting on the green speed as they typically run around 9-10 on the stimpmeter. This is not very fast, however it is necessary for a public course that sees a lot of play.
+It makes sense to me that people are commenting on the rain and wet course conditions. The Legends is a course that is known to not drain super well, especially the creek nine. This can lead to standing water, muddy fairways, and cart path only which is not ideal.
+
+
+For my final topic model, I looked at the entire dataset of Indianapolis courses again, but this time I focused on the comments that had a neutral/negative sentiment score. Specifically I filtered to only analyze comments that had a sentiment score of less than or equal to 0.10. Since the sentiment score ranges from -1 to +1, I felt that this threshold was a good cutoff point to look at people who had neutral to negative experiences at the course.
+Some of the topics that came up were:
+-Bunkers, sand condition, and rocks in the bunkers which made them unplayable
+-The price of the course
+-The pace of play, specifically regarding patrons walking on the course
+-The rangers and the starters
+-Fungus on the greens and in the fairways, aeration
+-Staff being unfriendly and grumpy
+
+I was not surprised to see that bunkers and sand condition came up again. As I mentioned earlier, bunkers are very expensive for courses to maintain, especially seasonal courses that experience a harsh winter. 
+The rate of greens fees and cart fees is definitely a topic that I expected to come up. Most courses charge $50-$100 or even more during prime time hours. This is a lot of money, and if customers feel that the course experience did not match the price they paid, they will certainly leave a negative review. 
+As I mentioned previously, the pace of play is an important aspect of the golf experience. Golf is a slower sport, however people do not enjoy waiting on the group in front of them. 
+A common theme that came up across reviews was patrons mentioning the ranger, starter, or course marshals. The ranger is typically seen as the "bad guy" on the course as he is responsible for enforcing the pace of play. Additionally, the ranger is responsible for enforcing rules, cart path rules, and other course policies.
+The final topic that I will discuss is the mentioning of fungus on the greens and in the fairways. Courses that do not have the means to properly maintain their greens and fairways will often experience weeds and fungus. Specifically regarding the greens, people get frustrated when they are not rolling true, and when they are bumpy. 
+
+I think it interesting to look across all three of these topic models and identify areas of overlap. I am noticing that bunkers / sand conditions, pace of play, and the staff are recurring topics that come up.
+
+Additionally, I feel that emphasis should be placed on the topic model that focused on the negative sentiment scores. Analyzing these topics/comments is where I feel that real value can be derived, and improvements can be made. 
+
+Note that for the negative sentiment topic model, our filter can be changed. Recall that I filtered based on a sentiment score of less than or equal to 0.10. This can be adjusted to look at more negative comments, or even more positive comments which is super useful for future analysis to be done across different regions. 
+
+## Conclusion and Takeaways
+
+Overall I am pleased with the analysis that I was able to conduct. 
+I am confident in my golf course ranking based on average sentiment score, as I have played many of these courses and can attest to the findings. Particularly my rankings capture the bad courses very well. There are a few courses that I felt were ranked a bit too high, but I did my best to keep my personal biases out of the analysis.
+
+I am happy with how my three topic models turned out. I feel I was able to look at the comments and reviews from varying perspectives, micro and macro levels. 
+
+As for the usability and use cases for this analysis, I am confident that this analysis could be used by golf courses to improve their overall experience.
+
+There is certainly a hierarchy that exists when it comes to golf courses. There are private and exclusive country clubs. There are semi-private courses that have a membership, but also allow public play. There are public courses that are open to anyone, and then there are city/municipal/park courses that are often very cheap and affordable.
+For a course that is ambitious about climbing this hierarchy, and improving their overall appeal they must play into what golfers value and care about. 
+
+Courses that are ambitious about improving their image and how they are perceived can use this analysis to refine their focus and efforts.
+
+My advice would be to start with the bunkers. I am aware that bunkers are an expensive part of the course to upkeep and maintain; however, golfers care about the playability and quality of the sand. If a golf course has the means to invest in their bunkers and do annual improvements, golfers will appreciate this and it will enhance the overall experience. 
+My next recommendation would be to focus on the staff and the hiring process of employees. Bring in employees who are passionate about the game and who want to deliver a great experience. Working at a golf course is a lot like working at a hotel, quality hospitality is key. Employees who are friendly, patient, and bring a positive attitude will leave golfers with a lasting positive impression. It's important to remember that these employees are the face of the course, and they are the first people that golfers interact with. 
+My final word of advice for courses that are looking to boost their ratings and enhance the experience for golfers is to place emphasis on sufficient pace of play. I'm a firm believer that a round of golf (18 holes) should be played in 4 and a half hours or less. This equates to around 15 minutes per hole. 
+Courses can ensure proper pace of play by having a starter/ranger who is trained to kindly inform golfers to play ready golf, and to keep up with the group in front of them. 
+
+There are many variables that go into a person's experience on the golf course. Some are controllable like the ones I have outlined, and some are uncontrollable such as the weather and Mother Nature. I believe that the courses that focus on the small details and controllable variables will be the ones who see consistent upward trends in their ratings, reviews, and consumer appeal. 
+
+
+## Motivation for Future Work
+
+Though I grew up playing golf in Indianapolis, I played my collegiate golf in Tampa, Florida. I would love to do a similar analysis for the Tampa Bay Region, as I have been fortunate enough to play several courses in the area. This would be a great opportunity for me to compare and contrast the two regions and see how they are similar.
+
+Additionally, looking not too far beyond the scope of this project, I would love to explore additional data sources to use with the GolfPass data. If I were able to collect data from other sources like Yelp, Google, GolfNow, and then merge these datasets together based on course name, I could have a much larger collection of reviews and comments to work with. 
+
+Finally, I would love to do some research into the psychology behind comments and reviews. Are people who have a poor experience more likely to leave a review? I would enjoy looking into the relationship between quantity of reviews and if a correlation exists between the number of reviews and the overall rating/sentiment.
+My hypothesis is that people who have a negative experience are more likely to leave a review than people who have a positive experience. If this is the case, courses might consider offering incentives for people to leave reviews. 
+
+
+## Citations / Websites Used
+https://www.golfpass.com/ (GolfPass Website)
+https://www.golfpass.com/travel-advisor/destinations/57-indianapolis-in/#courses (GolfPass Indianapolis Courses)
