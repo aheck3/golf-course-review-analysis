@@ -81,7 +81,6 @@ To analyze courses in Tampa, Orlando, or any other area, replace that URL with t
 - `golf-course-review-report.html`: Final rendered report  
 - `golf-course-review-presentation.pdf`: Presentation slides  
 - `data/`: Raw CSVs with course names and reviews  
-- `topic_model_golf.joblib`: Saved BERTopic model for reuse
 
 ## Author
 
