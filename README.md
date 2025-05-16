@@ -5,7 +5,7 @@ This project analyzes over 6,300 golfer reviews from GolfPass to uncover key the
 ## View the Report
 
 You can view the full HTML report here:  
-[Golf Course Review Analysis Report](https://aheck3.github.io/golf-course-review-analysis/golf-course-review-report.html)
+📄 [Golf Course Review Analysis Report](https://aheck3.github.io/golf-course-review-analysis/golf-course-review-report.html)
 
 
 ## Background
