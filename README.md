@@ -2,6 +2,11 @@
 
 This project analyzes over 6,300 golfer reviews from GolfPass to uncover key themes and preferences that influence course ratings and customer satisfaction. Using natural language processing techniques, I explored what matters most to players — such as bunker conditions, staff interactions, pace of play, and course maintenance. The analysis was conducted using Python, VADER sentiment scoring, and BERTopic, and it was completed as my final project for the MSBA Unstructured Data Analytics course at the University of Notre Dame.
 
+## View the Report
+
+You can view the full HTML report here:  
+**https://aheck3.github.io/golf-course-review-analysis/golf-course-review-report.html**
+
 ## Background
 
 Growing up on the Southside of Indianapolis, I’ve played dozens of courses in the area — from public courses to semi-private clubs. I’ve always been curious about what makes certain courses more enjoyable than others, and what specific elements drive a golfer to leave a positive or negative review.
@@ -87,8 +92,3 @@ To analyze courses in Tampa, Orlando, or any other area, replace that URL with t
 Alex S. Heck  
 MSBA, University of Notre Dame  
 GitHub: [@aheck3](https://github.com/aheck3)
-
-## View the Report
-
-You can view the full HTML report here:  
-**https://aheck3.github.io/golf-course-review-analysis/golf-course-review-report.html**
