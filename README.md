@@ -37,7 +37,7 @@ All reviews were scraped from GolfPass, a site affiliated with Golf Channel and 
 
 The data was cleaned, de-duplicated, and filtered to retain only courses with at least 20 reviews. The final dataset included 6,300+ comments.
 
-### 📥 Step 1: Scraping Course Names and URLs
+### 📥 Step 1: Scraping Course Names and Unique IDs from URLs.
 
 ```python
 import pandas as pd
@@ -73,6 +73,61 @@ golfcourses_df = pd.DataFrame(golfcourses)
 golfcourses_df = golfcourses_df[['course_name', 'unique_identifier']].drop_duplicates().reset_index(drop=True)
 
 golfcourses_df.head()
+
+# This line of code outputs the dataframe to a .csv to store locally.
+golfcourses_df.to_csv('golfcourseslistIndianapolis.csv', index=False) 
+golfcourses_df = pd.read_csv('golfcourseslistIndianapolis.csv')
+
+```
+
+### 📥 Step 2: Scraping Review Comments using unique IDs
+
+```python
+course_reviews_list = []
+
+for uniqid, course in golfcourses_df.iterrows():
+    course_name = course['course_name']
+    course_id = course['unique_identifier']
+
+    for number in range (1, 16, 1):
+        course_comments_url = f"https://www.golfpass.com/travel-advisor/courses/{course_id}?page={number}"
+        course_comments_req = requests.get(course_comments_url)
+        course_comments_soup = BeautifulSoup(course_comments_req.text, 'html.parser')
+
+        comment_text = course_comments_soup.select('.ReviewItem-description p')
+
+        for comment in comment_text:
+            try:
+                review_text = comment.get_text().strip()
+                if review_text:
+                    course_reviews_list.append({
+                        'course_name': course_name,
+                        'unique_identifier': course_id,
+                        'comment': review_text
+                    })
+            except IndexError:
+                continue
+
+course_reviews_df = pd.DataFrame(course_reviews_list)
+
+## Again, this code chunk takes a while to run so the below lines of code allow the dataframe to be stored locally. This will save you time.
+course_reviews_df = pd.read_csv('course_reviews_Indianapolis.csv')
+course_reviews_df = course_reviews_df.drop_duplicates(subset = ['comment']).reset_index(drop=True)
+
+
+```
+
+### 📥 Step 3: Filtering and Cleaning
+
+```python
+# I removed the duplicate comments and filtered the datset to only include courses with more than 20 reviews. This is simply the number I selected, it can be adjusted for the scope of analysis. 
+course_reviews_df = pd.read_csv('course_reviews_Indianapolis.csv')
+course_reviews_df = course_reviews_df.drop_duplicates(subset='comment').reset_index(drop=True)
+
+# Filter for courses with sufficient data
+course_reviews_df['count'] = course_reviews_df.groupby('course_name')['comment'].transform('count')
+course_reviews_df = course_reviews_df[course_reviews_df['count'] > 20]
+
 ```
 
 ## Methodology
