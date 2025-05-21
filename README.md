@@ -73,7 +73,7 @@ golfcourses_df = pd.DataFrame(golfcourses)
 golfcourses_df = golfcourses_df[['course_name', 'unique_identifier']].drop_duplicates().reset_index(drop=True)
 
 golfcourses_df.head()
-
+```
 
 ## Methodology
 
