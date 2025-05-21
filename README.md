@@ -57,12 +57,19 @@ Across all reviews, several themes emerged consistently:
 - Friendliness and professionalism of course staff
 - Course wetness and drainage (especially after rain)
 
+### Top 5 Courses by Sentiment
+
 The courses with the highest average sentiment scores were:
 1. Buffer Park Golf Course  
 2. Deer Creek Golf Club  
 3. Bear Slide Golf Club  
 4. Arrowhead Golf Course  
 5. Eagle Pines Golf Club  
+
+![Top 5 Courses in Indianapolis (Average Sentiment)](images/golf-course-review-analysis-top-5-courses.jpg)
+
+<p align="center"><em>Figure: Top 5 Courses in Indianapolis by Sentiment Score</em></p>
+
 
 
 ## Conclusion
