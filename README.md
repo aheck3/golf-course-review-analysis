@@ -37,6 +37,44 @@ All reviews were scraped from GolfPass, a site affiliated with Golf Channel and 
 
 The data was cleaned, de-duplicated, and filtered to retain only courses with at least 20 reviews. The final dataset included 6,300+ comments.
 
+### 📥 Step 1: Scraping Course Names and URLs
+
+```python
+import pandas as pd
+import numpy as np
+from bs4 import BeautifulSoup 
+import requests
+import re
+
+base_url = "https://www.golfpass.com/"
+top_courses = 'https://www.golfpass.com/travel-advisor/destinations/57-indianapolis-in/'
+top_courses_req = requests.get(top_courses)
+top_courses_soup = BeautifulSoup(top_courses_req.text, 'html.parser')
+
+links_class = top_courses_soup.select('a.Link')
+
+golfcourses = []
+
+for link in links_class:
+    href = link.get('href')
+    if '/courses/' in href:
+        find = re.search(r'/courses/([^/]+)/', href)
+        if find:
+            uniqueID = find.group(1)
+        else:
+            continue
+        course_complete_name = link.get_text().strip()
+        if not course_complete_name or "Write Review" in course_complete_name:
+            continue
+        golfcourses.append({'course_name': course_complete_name, 'unique_identifier': uniqueID})
+
+golfcourses_df = pd.DataFrame(golfcourses)
+
+golfcourses_df = golfcourses_df[['course_name', 'unique_identifier']].drop_duplicates().reset_index(drop=True)
+
+golfcourses_df.head()
+
+
 ## Methodology
 
 - **Web Scraping**: Used BeautifulSoup to scrape course names and review text  
